@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "700391740253",
+    "project_id": "mint-fin-app",
+    "storage_bucket": "mint-fin-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:700391740253:android:89d5a15522569093aa4eb4",
+        "android_client_info": {
+          "package_name": "com.example.mint"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFWwUL-PGx0bH_vsKVAovBXLFce5QdZD4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:700391740253:android:377f3179cd2d5681aa4eb4",
+        "android_client_info": {
+          "package_name": "com.mycompany.CounterApp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFWwUL-PGx0bH_vsKVAovBXLFce5QdZD4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
