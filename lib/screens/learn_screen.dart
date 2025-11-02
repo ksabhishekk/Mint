@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mintworth/models/learning_module.dart';
 import 'package:mintworth/services/learning_service.dart';
+import 'package:mintworth/services/user_service.dart';
+import 'package:mintworth/models/user.dart';
 import 'package:mintworth/screens/module_detail_screen.dart';
 
 class LearnScreen extends StatefulWidget {
@@ -14,6 +16,7 @@ class _LearnScreenState extends State<LearnScreen> {
   final _learningService = LearningService();
   List<LearningModule> _modules = [];
   bool _isLoading = true;
+  int _profileTotalPoints = 0;
 
   @override
   void initState() {
@@ -27,13 +30,25 @@ class _LearnScreenState extends State<LearnScreen> {
       _modules = modules;
       _isLoading = false;
     });
+    await _refreshUserPoints();
+  }
+
+  Future<void> _refreshUserPoints() async {
+    try {
+      final user = await UserService().getCurrentUser();
+      setState(() {
+        _profileTotalPoints = user.totalPoints;
+      });
+    } catch (e) {
+      print('Error refreshing user points: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final completedCount = _modules.where((m) => m.isCompleted).length;
-    final totalPoints = _modules.where((m) => m.isCompleted).fold(0, (sum, m) => sum + m.pointsReward);
+    final completedCount = _modules.where((m) => m.isCompleted == true).length;
+    final totalPoints = _profileTotalPoints;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -42,19 +57,21 @@ class _LearnScreenState extends State<LearnScreen> {
         backgroundColor: theme.colorScheme.surface,
         elevation: 0,
       ),
-      body: _isLoading ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildProgressCard(theme, completedCount, totalPoints),
-            const SizedBox(height: 24),
-            Text('Modules', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            ..._modules.map((module) => _buildModuleCard(module, theme)),
-          ],
-        ),
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildProgressCard(theme, completedCount, totalPoints),
+                  const SizedBox(height: 24),
+                  Text('Modules', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  ..._modules.map((module) => _buildModuleCard(module, theme)),
+                ],
+              ),
+            ),
     );
   }
 
@@ -65,12 +82,12 @@ class _LearnScreenState extends State<LearnScreen> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [theme.colorScheme.secondary, theme.colorScheme.secondary.withValues(alpha: 0.7)],
+          colors: [theme.colorScheme.secondary, theme.colorScheme.secondary.withOpacity(0.7)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: theme.colorScheme.secondary.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5))],
+        boxShadow: [BoxShadow(color: theme.colorScheme.secondary.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,14 +98,14 @@ class _LearnScreenState extends State<LearnScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Your Progress', style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 14)),
+                  Text('Your Progress', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14)),
                   const SizedBox(height: 8),
                   Text('$completedCount/${_modules.length} Modules', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
                 ],
               ),
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
                 child: const Icon(Icons.emoji_events, color: Colors.white, size: 32),
               ),
             ],
@@ -96,10 +113,15 @@ class _LearnScreenState extends State<LearnScreen> {
           const SizedBox(height: 16),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(value: progress, minHeight: 8, backgroundColor: Colors.white.withValues(alpha: 0.3), valueColor: const AlwaysStoppedAnimation(Colors.white)),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              backgroundColor: Colors.white.withOpacity(0.3),
+              valueColor: const AlwaysStoppedAnimation(Colors.white),
+            ),
           ),
           const SizedBox(height: 12),
-          Text('$totalPoints Points Earned', style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 12)),
+          Text('$totalPoints Points Earned', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12)),
         ],
       ),
     );
@@ -118,7 +140,7 @@ class _LearnScreenState extends State<LearnScreen> {
     return GestureDetector(
       onTap: () async {
         await Navigator.push(context, MaterialPageRoute(builder: (context) => ModuleDetailScreen(module: module)));
-        _loadModules();
+        _loadModules(); // Always refresh status after returning
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
@@ -127,14 +149,14 @@ class _LearnScreenState extends State<LearnScreen> {
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(16),
           border: module.isCompleted ? Border.all(color: theme.colorScheme.secondary, width: 2) : null,
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: (categoryColors[module.category] ?? theme.colorScheme.primary).withValues(alpha: 0.1),
+                color: (categoryColors[module.category] ?? theme.colorScheme.primary).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(module.isCompleted ? Icons.check_circle : Icons.school, color: categoryColors[module.category] ?? theme.colorScheme.primary, size: 28),
@@ -152,7 +174,7 @@ class _LearnScreenState extends State<LearnScreen> {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: (categoryColors[module.category] ?? theme.colorScheme.primary).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                        decoration: BoxDecoration(color: (categoryColors[module.category] ?? theme.colorScheme.primary).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
                         child: Text(module.category, style: TextStyle(color: categoryColors[module.category] ?? theme.colorScheme.primary, fontSize: 11, fontWeight: FontWeight.w600)),
                       ),
                       const SizedBox(width: 8),
