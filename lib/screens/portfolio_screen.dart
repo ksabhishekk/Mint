@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mintworth/models/portfolio.dart';
 import 'package:mintworth/services/portfolio_service.dart';
-import 'package:mintworth/services/user_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class PortfolioScreen extends StatefulWidget {
@@ -13,7 +12,6 @@ class PortfolioScreen extends StatefulWidget {
 
 class _PortfolioScreenState extends State<PortfolioScreen> {
   final _portfolioService = PortfolioService();
-  final _userService = UserService();
   Portfolio? _portfolio;
   bool _isLoading = true;
 
@@ -24,8 +22,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   }
 
   Future<void> _loadPortfolio() async {
-    final user = await _userService.getCurrentUser();
-    final portfolio = await _portfolioService.getPortfolio(user.id);
+    final portfolio = await _portfolioService.getPortfolio(); // No user.id argument!
     setState(() {
       _portfolio = portfolio;
       _isLoading = false;
@@ -35,7 +32,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
@@ -51,7 +48,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       ),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : _buildBody(theme),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showBuyDialog(),
+        onPressed: _showBuyDialog,
         icon: const Icon(Icons.add),
         label: const Text('Buy Stock'),
         backgroundColor: theme.colorScheme.secondary,
@@ -83,22 +80,22 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   Widget _buildSummaryCard(ThemeData theme) {
     final portfolio = _portfolio!;
     final isProfit = portfolio.totalProfitLoss >= 0;
-    
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.7)],
+          colors: [theme.colorScheme.primary, theme.colorScheme.primary.withAlpha(180)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5))],
+        boxShadow: [BoxShadow(color: theme.colorScheme.primary.withAlpha(80), blurRadius: 15, offset: const Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Total Portfolio Value', style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 14)),
+          Text('Total Portfolio Value', style: TextStyle(color: Colors.white.withAlpha(230), fontSize: 14)),
           const SizedBox(height: 8),
           Text('₹${portfolio.totalValue.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
@@ -108,7 +105,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Virtual Cash', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12)),
+                  Text('Virtual Cash', style: TextStyle(color: Colors.white.withAlpha(200), fontSize: 12)),
                   const SizedBox(height: 4),
                   Text('₹${portfolio.virtualCash.toStringAsFixed(0)}', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
                 ],
@@ -116,7 +113,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('Total P&L', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12)),
+                  Text('Total P&L', style: TextStyle(color: Colors.white.withAlpha(200), fontSize: 12)),
                   const SizedBox(height: 4),
                   Row(
                     children: [
@@ -139,14 +136,14 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     if (portfolio.holdings.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
+        decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withAlpha(15), blurRadius: 10)]),
         child: const Center(child: Text('No investments yet. Start by buying stocks!')),
       );
     }
 
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
+      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withAlpha(15), blurRadius: 10)]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -178,7 +175,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
 
   Widget _buildHoldingsSection(ThemeData theme) {
     final portfolio = _portfolio!;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -198,11 +195,11 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
 
   Widget _buildHoldingCard(PortfolioHolding holding, ThemeData theme) {
     final isProfit = holding.profitLoss >= 0;
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)]),
+      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withAlpha(15), blurRadius: 8)]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -294,7 +291,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                 if (selectedSymbol != null) {
                   try {
                     final stock = stocks.firstWhere((s) => s['symbol'] == selectedSymbol);
-                    await _portfolioService.buyStock(_portfolio!, selectedSymbol!, stock['name'] as String, quantity, stock['price'] as double);
+                    await _portfolioService.buyStock(selectedSymbol!, stock['name'] as String, quantity, stock['price'] as double);
                     await _loadPortfolio();
                     if (mounted) {
                       Navigator.pop(context);
@@ -341,7 +338,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
             ElevatedButton(
               onPressed: () async {
                 try {
-                  await _portfolioService.sellStock(_portfolio!, holding.symbol, quantity);
+                  await _portfolioService.sellStock(holding.symbol, quantity); // Only pass symbol and quantity!
                   await _loadPortfolio();
                   if (mounted) {
                     Navigator.pop(context);

@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Portfolio {
   final String id;
   final String userId;
@@ -32,16 +34,22 @@ class Portfolio {
   };
 
   factory Portfolio.fromJson(Map<String, dynamic> json) => Portfolio(
-    id: json['id'] as String,
-    userId: json['userId'] as String,
-    virtualCash: (json['virtualCash'] as num).toDouble(),
-    totalInvested: (json['totalInvested'] as num?)?.toDouble() ?? 0,
-    holdings: (json['holdings'] as List<dynamic>?)
-      ?.map((h) => PortfolioHolding.fromJson(h as Map<String, dynamic>))
-      .toList() ?? [],
-    createdAt: DateTime.parse(json['createdAt'] as String),
-    updatedAt: DateTime.parse(json['updatedAt'] as String),
+    id: (json['id'] ?? '') as String,
+    userId: (json['userId'] ?? '') as String,
+    virtualCash: (json['virtualCash'] is num ? (json['virtualCash'] as num).toDouble() : 0),
+    totalInvested: (json['totalInvested'] is num ? (json['totalInvested'] as num).toDouble() : 0),
+    holdings: (json['holdings'] as List<dynamic>? ?? [])
+      .map((h) => PortfolioHolding.fromJson(Map<String, dynamic>.from(h)))
+      .toList(),
+    createdAt: _parseDate(json['createdAt']),
+    updatedAt: _parseDate(json['updatedAt']),
   );
+
+  static DateTime _parseDate(dynamic val) {
+    if (val is Timestamp) return val.toDate();
+    if (val is String) return DateTime.tryParse(val) ?? DateTime.now();
+    return DateTime.now();
+  }
 
   Portfolio copyWith({
     String? id,
@@ -84,7 +92,7 @@ class PortfolioHolding {
   double get currentValue => quantity * currentPrice;
   double get investedValue => quantity * buyPrice;
   double get profitLoss => currentValue - investedValue;
-  double get profitLossPercent => ((currentPrice - buyPrice) / buyPrice) * 100;
+  double get profitLossPercent => buyPrice == 0 ? 0 : ((currentPrice - buyPrice) / buyPrice) * 100;
 
   Map<String, dynamic> toJson() => {
     'symbol': symbol,
@@ -97,13 +105,13 @@ class PortfolioHolding {
   };
 
   factory PortfolioHolding.fromJson(Map<String, dynamic> json) => PortfolioHolding(
-    symbol: json['symbol'] as String,
-    name: json['name'] as String,
-    type: json['type'] as String,
-    quantity: json['quantity'] as int,
-    buyPrice: (json['buyPrice'] as num).toDouble(),
-    currentPrice: (json['currentPrice'] as num).toDouble(),
-    purchaseDate: DateTime.parse(json['purchaseDate'] as String),
+    symbol: (json['symbol'] ?? '') as String,
+    name: (json['name'] ?? '') as String,
+    type: (json['type'] ?? '') as String,
+    quantity: (json['quantity'] ?? 0) as int,
+    buyPrice: (json['buyPrice'] is num ? (json['buyPrice'] as num).toDouble() : 0),
+    currentPrice: (json['currentPrice'] is num ? (json['currentPrice'] as num).toDouble() : 0),
+    purchaseDate: Portfolio._parseDate(json['purchaseDate']),
   );
 
   PortfolioHolding copyWith({

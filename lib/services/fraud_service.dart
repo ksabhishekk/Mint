@@ -1,30 +1,35 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mintworth/models/fraud_challenge.dart';
-import 'package:mintworth/services/local_storage_service.dart';
 
 class FraudService {
-  static const String _key = 'fraud_challenges';
-
+  // Fetch list of sample challenges (static, you can later move to global Firestore collection)
   Future<List<FraudChallenge>> getAllChallenges() async {
-    final jsonList = LocalStorageService.getJsonList(_key);
-    if (jsonList != null && jsonList.isNotEmpty) {
-      return jsonList.map((json) => FraudChallenge.fromJson(json)).toList();
+    return _getSampleChallenges();
+  }
+
+  // Get per-user completed challenge IDs from Firestore
+  Future<List<String>> getCompletedChallengeIds() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final data = doc.data();
+    final fraudMap = data?['fraudScenarios'];
+    if (fraudMap != null && fraudMap['completedIds'] != null) {
+      return List<String>.from(fraudMap['completedIds']);
     }
-
-    final challenges = _getSampleChallenges();
-    await saveChallenges(challenges);
-    return challenges;
+    return [];
   }
 
-  Future<void> saveChallenges(List<FraudChallenge> challenges) async {
-    await LocalStorageService.saveJsonList(_key, challenges.map((c) => c.toJson()).toList());
-  }
-
+  // Mark a challenge as completed for this user
   Future<void> markChallengeCompleted(String challengeId) async {
-    final challenges = await getAllChallenges();
-    final index = challenges.indexWhere((c) => c.id == challengeId);
-    if (index >= 0) {
-      challenges[index] = challenges[index].copyWith(isCompleted: true, updatedAt: DateTime.now());
-      await saveChallenges(challenges);
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
+    final doc = await userDoc.get();
+    final fraudMap = doc.data()?['fraudScenarios'] ?? {};
+    final completedIds = List<String>.from(fraudMap['completedIds'] ?? []);
+    if (!completedIds.contains(challengeId)) {
+      completedIds.add(challengeId);
+      await userDoc.update({'fraudScenarios.completedIds': completedIds});
     }
   }
 

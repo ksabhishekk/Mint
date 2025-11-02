@@ -1,7 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class User {
   final String id;
   final String name;
   final String email;
+  final String profileNo;
   final int totalPoints;
   final int currentStreak;
   final List<String> achievements;
@@ -12,17 +15,36 @@ class User {
     required this.id,
     required this.name,
     required this.email,
-    this.totalPoints = 0,
-    this.currentStreak = 0,
-    this.achievements = const [],
+    required this.profileNo,
+    required this.totalPoints,
+    required this.currentStreak,
+    required this.achievements,
     required this.createdAt,
     required this.updatedAt,
   });
 
+  factory User.fromJson(Map<String, dynamic> json, [String? uid]) {
+    return User(
+      id: uid ?? json['id'] ?? "",
+      name: json['name'] ?? "",
+      email: json['email'] ?? "",
+      profileNo: json['profileNo'] ?? "",
+      totalPoints: json['totalPoints'] ?? 0,
+      currentStreak: json['currentStreak'] ?? 0,
+      achievements: (json['achievements'] as List<dynamic>? ?? []).map((e) => e.toString()).toList(),
+      createdAt: (json['createdAt'] is Timestamp)
+        ? (json['createdAt'] as Timestamp).toDate()
+        : DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
+      updatedAt: (json['updatedAt'] is Timestamp)
+        ? (json['updatedAt'] as Timestamp).toDate()
+        : DateTime.tryParse(json['updatedAt'] ?? '') ?? DateTime.now(),
+    );
+  }
+
   Map<String, dynamic> toJson() => {
-    'id': id,
     'name': name,
     'email': email,
+    'profileNo': profileNo,
     'totalPoints': totalPoints,
     'currentStreak': currentStreak,
     'achievements': achievements,
@@ -30,34 +52,26 @@ class User {
     'updatedAt': updatedAt.toIso8601String(),
   };
 
-  factory User.fromJson(Map<String, dynamic> json) => User(
-    id: json['id'] as String,
-    name: json['name'] as String,
-    email: json['email'] as String,
-    totalPoints: json['totalPoints'] as int? ?? 0,
-    currentStreak: json['currentStreak'] as int? ?? 0,
-    achievements: (json['achievements'] as List<dynamic>?)?.cast<String>() ?? [],
-    createdAt: DateTime.parse(json['createdAt'] as String),
-    updatedAt: DateTime.parse(json['updatedAt'] as String),
-  );
-
   User copyWith({
-    String? id,
     String? name,
     String? email,
+    String? profileNo,
     int? totalPoints,
     int? currentStreak,
     List<String>? achievements,
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) => User(
-    id: id ?? this.id,
-    name: name ?? this.name,
-    email: email ?? this.email,
-    totalPoints: totalPoints ?? this.totalPoints,
-    currentStreak: currentStreak ?? this.currentStreak,
-    achievements: achievements ?? this.achievements,
-    createdAt: createdAt ?? this.createdAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-  );
+  }) {
+    return User(
+      id: id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      profileNo: profileNo ?? this.profileNo,
+      totalPoints: totalPoints ?? this.totalPoints,
+      currentStreak: currentStreak ?? this.currentStreak,
+      achievements: achievements ?? this.achievements,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }

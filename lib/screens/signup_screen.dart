@@ -35,12 +35,10 @@ class _SignUpPageState extends State<SignUpPage> {
       errorMessage = '';
     });
     try {
-      final userCredential =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
-
       final user = userCredential.user!;
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'name': nameController.text.trim(),
@@ -51,6 +49,37 @@ class _SignUpPageState extends State<SignUpPage> {
         'achievements': [],
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
+        'budget': {
+          'monthlyIncome': 35000,
+          'savingsGoal': 10000,
+          'transactions': [
+            {
+              'id': 'txn1',
+              'category': 'Salary',
+              'amount': 35000,
+              'type': 'income',
+              'description': 'Monthly salary',
+              'date': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+            }
+          ],
+          'createdAt': DateTime.now().toIso8601String(),
+          'updatedAt': DateTime.now().toIso8601String(),
+        },
+        'portfolio': {
+          'virtualCash': 55000,
+          'totalInvested': 0,
+          'holdings': [],
+          'createdAt': DateTime.now().toIso8601String(),
+          'updatedAt': DateTime.now().toIso8601String(),
+        },
+        'modules': {
+          'completedIds': [],
+          'progress': [],
+        },
+        'fraudScenarios': {
+          'completedIds': [],
+          'progress': [],
+        }
       });
 
       Navigator.of(context).pushReplacement(
@@ -144,8 +173,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         ),
                         child: Text(
                           'Sign Up',
-                          style: theme.textTheme.titleMedium!
-                              .copyWith(color: theme.colorScheme.onSecondary),
+                          style: theme.textTheme.titleMedium!.copyWith(color: theme.colorScheme.onSecondary),
                         ),
                       ),
                     const SizedBox(height: 20),

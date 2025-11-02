@@ -1,22 +1,25 @@
 import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mintworth/models/portfolio.dart';
-import 'package:mintworth/services/local_storage_service.dart';
 
 class PortfolioService {
-  static const String _key = 'portfolio';
   final _random = Random();
 
-  Future<Portfolio> getPortfolio(String userId) async {
-    final json = LocalStorageService.getJson(_key);
-    if (json != null) {
-      final portfolio = Portfolio.fromJson(json);
+  Future<Portfolio> getPortfolio() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final data = doc.data();
+    final portfolioMap = data?['portfolio'];
+    if (portfolioMap != null) {
+      final portfolio = Portfolio.fromJson(Map<String, dynamic>.from(portfolioMap));
       return _updatePrices(portfolio);
     }
-
+    // Default starting portfolio
     final now = DateTime.now();
     final newPortfolio = Portfolio(
       id: 'portfolio1',
-      userId: userId,
+      userId: uid,
       virtualCash: 55000.0,
       totalInvested: 45000.0,
       holdings: [
@@ -69,10 +72,15 @@ class PortfolioService {
   }
 
   Future<void> savePortfolio(Portfolio portfolio) async {
-    await LocalStorageService.saveJson(_key, portfolio.toJson());
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .update({'portfolio': portfolio.toJson()});
   }
 
-  Future<Portfolio> buyStock(Portfolio portfolio, String symbol, String name, int quantity, double price) async {
+  Future<Portfolio> buyStock(String symbol, String name, int quantity, double price) async {
+    final portfolio = await getPortfolio();
     final cost = quantity * price;
     if (portfolio.virtualCash < cost) {
       throw Exception('Insufficient funds');
@@ -85,7 +93,6 @@ class PortfolioService {
       final existing = portfolio.holdings[existingIndex];
       final totalQuantity = existing.quantity + quantity;
       final avgPrice = ((existing.buyPrice * existing.quantity) + (price * quantity)) / totalQuantity;
-      
       updatedHoldings = List.from(portfolio.holdings);
       updatedHoldings[existingIndex] = existing.copyWith(
         quantity: totalQuantity,
@@ -118,7 +125,8 @@ class PortfolioService {
     return updated;
   }
 
-  Future<Portfolio> sellStock(Portfolio portfolio, String symbol, int quantity) async {
+  Future<Portfolio> sellStock(String symbol, int quantity) async {
+    final portfolio = await getPortfolio();
     final holdingIndex = portfolio.holdings.indexWhere((h) => h.symbol == symbol);
     if (holdingIndex < 0) throw Exception('Stock not found');
 
@@ -145,13 +153,13 @@ class PortfolioService {
   }
 
   List<Map<String, dynamic>> getAvailableStocks() => [
-    {'symbol': 'RELIANCE', 'name': 'Reliance Industries', 'price': 2520.0},
-    {'symbol': 'TCS', 'name': 'Tata Consultancy Services', 'price': 3720.0},
-    {'symbol': 'HDFCBANK', 'name': 'HDFC Bank', 'price': 1610.0},
-    {'symbol': 'INFY', 'name': 'Infosys', 'price': 1450.0},
-    {'symbol': 'WIPRO', 'name': 'Wipro', 'price': 425.0},
-    {'symbol': 'ICICIBANK', 'name': 'ICICI Bank', 'price': 985.0},
-    {'symbol': 'SBIN', 'name': 'State Bank of India', 'price': 625.0},
-    {'symbol': 'BHARTIARTL', 'name': 'Bharti Airtel', 'price': 1275.0},
-  ];
+        {'symbol': 'RELIANCE', 'name': 'Reliance Industries', 'price': 2520.0},
+        {'symbol': 'TCS', 'name': 'Tata Consultancy Services', 'price': 3720.0},
+        {'symbol': 'HDFCBANK', 'name': 'HDFC Bank', 'price': 1610.0},
+        {'symbol': 'INFY', 'name': 'Infosys', 'price': 1450.0},
+        {'symbol': 'WIPRO', 'name': 'Wipro', 'price': 425.0},
+        {'symbol': 'ICICIBANK', 'name': 'ICICI Bank', 'price': 985.0},
+        {'symbol': 'SBIN', 'name': 'State Bank of India', 'price': 625.0},
+        {'symbol': 'BHARTIARTL', 'name': 'Bharti Airtel', 'price': 1275.0},
+      ];
 }

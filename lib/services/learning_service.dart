@@ -1,30 +1,35 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mintworth/models/learning_module.dart';
-import 'package:mintworth/services/local_storage_service.dart';
 
 class LearningService {
-  static const String _key = 'learning_modules';
-
+  // Get the static modules list (can move to a global read-only collection later)
   Future<List<LearningModule>> getAllModules() async {
-    final jsonList = LocalStorageService.getJsonList(_key);
-    if (jsonList != null && jsonList.isNotEmpty) {
-      return jsonList.map((json) => LearningModule.fromJson(json)).toList();
+    return _getSampleModules();
+  }
+
+  // Fetch completed module IDs for the current user
+  Future<List<String>> getCompletedModuleIds() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final data = doc.data();
+    final modulesMap = data?['modules'];
+    if (modulesMap != null && modulesMap['completedIds'] != null) {
+      return List<String>.from(modulesMap['completedIds']);
     }
-
-    final modules = _getSampleModules();
-    await saveModules(modules);
-    return modules;
+    return [];
   }
 
-  Future<void> saveModules(List<LearningModule> modules) async {
-    await LocalStorageService.saveJsonList(_key, modules.map((m) => m.toJson()).toList());
-  }
-
+  // Mark module as completed for this user
   Future<void> markModuleCompleted(String moduleId) async {
-    final modules = await getAllModules();
-    final index = modules.indexWhere((m) => m.id == moduleId);
-    if (index >= 0) {
-      modules[index] = modules[index].copyWith(isCompleted: true, updatedAt: DateTime.now());
-      await saveModules(modules);
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
+    final doc = await userDoc.get();
+    final modulesMap = doc.data()?['modules'] ?? {};
+    final completedIds = List<String>.from(modulesMap['completedIds'] ?? []);
+    if (!completedIds.contains(moduleId)) {
+      completedIds.add(moduleId);
+      await userDoc.update({'modules.completedIds': completedIds});
     }
   }
 

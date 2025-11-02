@@ -1,31 +1,24 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fire;
 import 'package:mintworth/models/user.dart';
-import 'package:mintworth/services/local_storage_service.dart';
 
 class UserService {
-  static const String _key = 'user';
-
+  // Fetch the current user's profile (from Firestore)
   Future<User> getCurrentUser() async {
-    final json = LocalStorageService.getJson(_key);
-    if (json != null) return User.fromJson(json);
-
-    final newUser = User(
-      id: 'user1',
-      name: 'Sai Abhishek',
-      email: 'ab@email.com',
-      totalPoints: 450,
-      currentStreak: 5,
-      achievements: ['First Investment', 'Quiz Master'],
-      createdAt: DateTime.now().subtract(const Duration(days: 30)),
-      updatedAt: DateTime.now(),
-    );
-    await saveUser(newUser);
-    return newUser;
+    final uid = fire.FirebaseAuth.instance.currentUser!.uid;
+    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final data = doc.data();
+    if (data != null) return User.fromJson(data);
+    throw Exception('No user profile found in Firestore.');
   }
 
+  // Save/update the current user's profile
   Future<void> saveUser(User user) async {
-    await LocalStorageService.saveJson(_key, user.toJson());
+    final uid = fire.FirebaseAuth.instance.currentUser!.uid;
+    await FirebaseFirestore.instance.collection('users').doc(uid).update(user.toJson());
   }
 
+  // Add points to the user's profile
   Future<void> addPoints(int points) async {
     final user = await getCurrentUser();
     final updated = user.copyWith(
@@ -35,6 +28,7 @@ class UserService {
     await saveUser(updated);
   }
 
+  // Increment user's current streak
   Future<void> incrementStreak() async {
     final user = await getCurrentUser();
     final updated = user.copyWith(
@@ -44,6 +38,7 @@ class UserService {
     await saveUser(updated);
   }
 
+  // Add achievement if not already present
   Future<void> addAchievement(String achievement) async {
     final user = await getCurrentUser();
     if (user.achievements.contains(achievement)) return;

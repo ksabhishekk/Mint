@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Budget {
   final String id;
   final String userId;
@@ -17,14 +19,8 @@ class Budget {
     required this.updatedAt,
   });
 
-  double get totalExpenses => transactions
-    .where((t) => t.type == 'expense')
-    .fold(0.0, (sum, t) => sum + t.amount);
-
-  double get totalIncome => transactions
-    .where((t) => t.type == 'income')
-    .fold(0.0, (sum, t) => sum + t.amount);
-
+  double get totalExpenses => transactions.where((t) => t.type == 'expense').fold(0.0, (sum, t) => sum + t.amount);
+  double get totalIncome => transactions.where((t) => t.type == 'income').fold(0.0, (sum, t) => sum + t.amount);
   double get balance => totalIncome - totalExpenses;
 
   Map<String, dynamic> toJson() => {
@@ -38,16 +34,22 @@ class Budget {
   };
 
   factory Budget.fromJson(Map<String, dynamic> json) => Budget(
-    id: json['id'] as String,
-    userId: json['userId'] as String,
-    monthlyIncome: (json['monthlyIncome'] as num).toDouble(),
-    savingsGoal: (json['savingsGoal'] as num).toDouble(),
-    transactions: (json['transactions'] as List<dynamic>?)
-      ?.map((t) => BudgetTransaction.fromJson(t as Map<String, dynamic>))
-      .toList() ?? [],
-    createdAt: DateTime.parse(json['createdAt'] as String),
-    updatedAt: DateTime.parse(json['updatedAt'] as String),
+    id: (json['id'] ?? '') as String,
+    userId: (json['userId'] ?? '') as String,
+    monthlyIncome: (json['monthlyIncome'] is num ? (json['monthlyIncome'] as num).toDouble() : 0),
+    savingsGoal: (json['savingsGoal'] is num ? (json['savingsGoal'] as num).toDouble() : 0),
+    transactions: (json['transactions'] as List<dynamic>? ?? [])
+      .map((t) => BudgetTransaction.fromJson(Map<String, dynamic>.from(t)))
+      .toList(),
+    createdAt: _parseDate(json['createdAt']),
+    updatedAt: _parseDate(json['updatedAt']),
   );
+
+  static DateTime _parseDate(dynamic val) {
+    if (val is Timestamp) return val.toDate();
+    if (val is String) return DateTime.tryParse(val) ?? DateTime.now();
+    return DateTime.now();
+  }
 
   Budget copyWith({
     String? id,
@@ -95,11 +97,11 @@ class BudgetTransaction {
   };
 
   factory BudgetTransaction.fromJson(Map<String, dynamic> json) => BudgetTransaction(
-    id: json['id'] as String,
-    category: json['category'] as String,
-    amount: (json['amount'] as num).toDouble(),
-    type: json['type'] as String,
-    description: json['description'] as String,
-    date: DateTime.parse(json['date'] as String),
+    id: (json['id'] ?? '') as String,
+    category: (json['category'] ?? '') as String,
+    amount: (json['amount'] is num ? (json['amount'] as num).toDouble() : 0),
+    type: (json['type'] ?? '') as String,
+    description: (json['description'] ?? '') as String,
+    date: Budget._parseDate(json['date']),
   );
 }

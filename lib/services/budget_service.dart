@@ -1,81 +1,41 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mintworth/models/budget.dart';
-import 'package:mintworth/services/local_storage_service.dart';
 
 class BudgetService {
-  static const String _key = 'budget';
-
-  Future<Budget> getBudget(String userId) async {
-    final json = LocalStorageService.getJson(_key);
-    if (json != null) return Budget.fromJson(json);
-
+  Future<Budget> getBudget() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final data = doc.data();
+    final budgetMap = data?['budget'];
+    if (budgetMap != null) {
+      return Budget.fromJson(Map<String, dynamic>.from(budgetMap));
+    }
+    // If missing, return a new budget with sensible defaults
     final now = DateTime.now();
     final newBudget = Budget(
       id: 'budget1',
-      userId: userId,
+      userId: uid,
       monthlyIncome: 35000.0,
       savingsGoal: 10000.0,
-      transactions: [
-        BudgetTransaction(
-          id: 'txn1',
-          category: 'Salary',
-          amount: 35000.0,
-          type: 'income',
-          description: 'Monthly salary',
-          date: now.subtract(const Duration(days: 25)),
-        ),
-        BudgetTransaction(
-          id: 'txn2',
-          category: 'Food',
-          amount: 3500.0,
-          type: 'expense',
-          description: 'Groceries',
-          date: now.subtract(const Duration(days: 20)),
-        ),
-        BudgetTransaction(
-          id: 'txn3',
-          category: 'Transport',
-          amount: 2000.0,
-          type: 'expense',
-          description: 'Uber/Metro',
-          date: now.subtract(const Duration(days: 18)),
-        ),
-        BudgetTransaction(
-          id: 'txn4',
-          category: 'Entertainment',
-          amount: 1500.0,
-          type: 'expense',
-          description: 'Movies and dining',
-          date: now.subtract(const Duration(days: 15)),
-        ),
-        BudgetTransaction(
-          id: 'txn5',
-          category: 'Bills',
-          amount: 4000.0,
-          type: 'expense',
-          description: 'Rent contribution',
-          date: now.subtract(const Duration(days: 10)),
-        ),
-        BudgetTransaction(
-          id: 'txn6',
-          category: 'Shopping',
-          amount: 2500.0,
-          type: 'expense',
-          description: 'Clothing',
-          date: now.subtract(const Duration(days: 5)),
-        ),
-      ],
-      createdAt: now.subtract(const Duration(days: 30)),
+      transactions: [],
+      createdAt: now,
       updatedAt: now,
     );
-    await saveBudget(newBudget);
+    await saveBudget(newBudget); // Initialize in Firestore
     return newBudget;
   }
 
   Future<void> saveBudget(Budget budget) async {
-    await LocalStorageService.saveJson(_key, budget.toJson());
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    await FirebaseFirestore.instance
+      .collection('users')
+      .doc(uid)
+      .update({'budget': budget.toJson()});
   }
 
-  Future<Budget> addTransaction(Budget budget, BudgetTransaction transaction) async {
+  Future<Budget> addTransaction(BudgetTransaction transaction) async {
+    final budget = await getBudget();
     final updated = budget.copyWith(
       transactions: [...budget.transactions, transaction],
       updatedAt: DateTime.now(),
@@ -84,7 +44,8 @@ class BudgetService {
     return updated;
   }
 
-  Future<Budget> deleteTransaction(Budget budget, String transactionId) async {
+  Future<Budget> deleteTransaction(String transactionId) async {
+    final budget = await getBudget();
     final updated = budget.copyWith(
       transactions: budget.transactions.where((t) => t.id != transactionId).toList(),
       updatedAt: DateTime.now(),
@@ -93,7 +54,8 @@ class BudgetService {
     return updated;
   }
 
-  Future<Budget> updateBudgetGoals(Budget budget, double income, double goal) async {
+  Future<Budget> updateBudgetGoals(double income, double goal) async {
+    final budget = await getBudget();
     final updated = budget.copyWith(
       monthlyIncome: income,
       savingsGoal: goal,

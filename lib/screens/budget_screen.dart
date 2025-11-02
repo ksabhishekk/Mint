@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mintworth/models/budget.dart';
 import 'package:mintworth/services/budget_service.dart';
-import 'package:mintworth/services/user_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class BudgetScreen extends StatefulWidget {
@@ -13,7 +12,6 @@ class BudgetScreen extends StatefulWidget {
 
 class _BudgetScreenState extends State<BudgetScreen> {
   final _budgetService = BudgetService();
-  final _userService = UserService();
   Budget? _budget;
   bool _isLoading = true;
 
@@ -24,8 +22,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
   }
 
   Future<void> _loadBudget() async {
-    final user = await _userService.getCurrentUser();
-    final budget = await _budgetService.getBudget(user.id);
+    final budget = await _budgetService.getBudget(); // No user.id needed!
     setState(() {
       _budget = budget;
       _isLoading = false;
@@ -79,17 +76,17 @@ class _BudgetScreenState extends State<BudgetScreen> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [theme.colorScheme.tertiary, theme.colorScheme.tertiary.withValues(alpha: 0.7)],
+          colors: [theme.colorScheme.tertiary, theme.colorScheme.tertiary.withAlpha(180)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: theme.colorScheme.tertiary.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5))],
+        boxShadow: [BoxShadow(color: theme.colorScheme.tertiary.withAlpha(80), blurRadius: 15, offset: const Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Current Balance', style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 14)),
+          Text('Current Balance', style: TextStyle(color: Colors.white.withAlpha(230), fontSize: 14)),
           const SizedBox(height: 8),
           Text('₹${remaining.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
           const SizedBox(height: 20),
@@ -108,14 +105,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Savings Goal Progress', style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 12)),
-                  Text('${(savingsProgress * 100).toStringAsFixed(0)}%', style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text('Savings Goal Progress', style: TextStyle(color: Colors.white.withAlpha(230), fontSize: 12)),
+                  Text('${(savingsProgress * 100).toStringAsFixed(0)}%', style: TextStyle(color: Colors.white.withAlpha(230), fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 8),
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(value: savingsProgress, minHeight: 8, backgroundColor: Colors.white.withValues(alpha: 0.3), valueColor: const AlwaysStoppedAnimation(Colors.white)),
+                child: LinearProgressIndicator(value: savingsProgress, minHeight: 8, backgroundColor: Colors.white.withAlpha(80), valueColor: const AlwaysStoppedAnimation(Colors.white)),
               ),
             ],
           ),
@@ -129,7 +126,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
       children: [
         Icon(icon, color: Colors.white, size: 20),
         const SizedBox(height: 4),
-        Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11)),
+        Text(label, style: TextStyle(color: Colors.white.withAlpha(200), fontSize: 11)),
         const SizedBox(height: 2),
         Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
       ],
@@ -141,7 +138,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     if (categoryTotals.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
+        decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withAlpha(15), blurRadius: 10)]),
         child: const Center(child: Text('No expenses yet')),
       );
     }
@@ -150,7 +147,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
+      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withAlpha(15), blurRadius: 10)]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -220,12 +217,12 @@ class _BudgetScreenState extends State<BudgetScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)]),
+      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withAlpha(15), blurRadius: 8)]),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: (isIncome ? Colors.green : Colors.red).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: (isIncome ? Colors.green : Colors.red).withAlpha(25), borderRadius: BorderRadius.circular(10)),
             child: Icon(isIncome ? Icons.arrow_downward : Icons.arrow_upward, color: isIncome ? Colors.green : Colors.red, size: 20),
           ),
           const SizedBox(width: 12),
@@ -311,7 +308,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     description: description,
                     date: DateTime.now(),
                   );
-                  await _budgetService.addTransaction(_budget!, transaction);
+                  await _budgetService.addTransaction(transaction);
                   await _loadBudget();
                   if (mounted) {
                     Navigator.pop(context);
